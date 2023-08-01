@@ -1,7 +1,7 @@
 use image::ImageBuffer;
 use image::Pixel;
 use ndarray::Array2;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 fn expand_distances(distances: &mut Array2<i32>, iteration: i32) -> bool {
     let mut incremented_distances = false;
