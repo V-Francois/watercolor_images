@@ -20,6 +20,6 @@ fn test_compute_distance_to_border() {
     let shape = distances.shape();
     assert_eq!(shape, &[880, 587]);
 
-    let zero_value: Option<&i32> = Some(0).as_ref();
-    assert_eq!(distances.iter().max(), zero_value);
+    assert_eq!(distances.iter().min(), Some(0).as_ref());
+    assert_eq!(distances.iter().max(), Some(290).as_ref());
 }

@@ -1,7 +1,56 @@
 use image::ImageBuffer;
 use image::Pixel;
 use ndarray::Array2;
+use std::fs::File;
 use std::ops::Deref;
+use std::path::Path;
+
+fn expand_distances(distances: &mut Array2<i32>, iteration: i32) -> bool {
+    let mut incremented_distances = false;
+
+    // not guaranteed to have the smallest distances written in the array
+    // but that will be enough for now
+
+    let shape = distances.shape();
+    let w = shape[0];
+    let h = shape[1];
+
+    for x in 0..(w - 1) {
+        for y in 0..(h - 1) {
+            let here = distances[[x as usize, y as usize]];
+            if here != iteration {
+                continue;
+            }
+
+            let right = distances[[(x + 1) as usize, y as usize]];
+            if right == -1 {
+                distances[[(x + 1) as usize, y as usize]] = iteration + 1;
+                incremented_distances = true;
+            }
+            let below = distances[[x as usize, (y + 1) as usize]];
+            if below == -1 {
+                distances[[x as usize, (y + 1) as usize]] = iteration + 1;
+                incremented_distances = true;
+            }
+            if x > 0 {
+                let left = distances[[(x - 1) as usize, y as usize]];
+                if left == -1 {
+                    distances[[(x - 1) as usize, y as usize]] = iteration + 1;
+                    incremented_distances = true;
+                }
+            }
+            if y > 0 {
+                let above = distances[[x as usize, (y - 1) as usize]];
+                if above == -1 {
+                    distances[[x as usize, (y - 1) as usize]] = iteration + 1;
+                    incremented_distances = true;
+                }
+            }
+        }
+    }
+
+    return incremented_distances;
+}
 
 pub fn compute_distance_to_border<P: Pixel, Container: Deref<Target = [P::Subpixel]>>(
     img: &ImageBuffer<P, Container>,
@@ -32,6 +81,15 @@ pub fn compute_distance_to_border<P: Pixel, Container: Deref<Target = [P::Subpix
     }
     if !found_border {
         return distances;
+    }
+
+    let mut iteration = 0;
+    loop {
+        let incremented_distances = expand_distances(&mut distances, iteration);
+        iteration += 1;
+        if !incremented_distances {
+            break;
+        }
     }
 
     return distances;
