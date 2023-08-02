@@ -1,3 +1,4 @@
+use image::imageops::blur;
 use image::ImageOutputFormat;
 use std::fs::File;
 use std::path::Path;
@@ -9,11 +10,15 @@ fn main() {
         .expect("File not found")
         .into_rgba8();
 
+    // TODO: set alpha to 1 everywhere
+
     let distances = watercolor_images::compute_distance_to_border(&img);
 
     // Replace pixels close to border by white pixels
     let max_distance = 3;
     watercolor_images::set_pixel_close_to_border_to_white(&mut img, max_distance, &distances);
+
+    img = blur(&img, (max_distance as f32) / 2.0);
 
     let path = Path::new("data/output.png");
     let display = path.display();

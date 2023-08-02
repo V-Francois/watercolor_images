@@ -3,6 +3,7 @@ use image::Pixel;
 use image::Rgba;
 use image::RgbaImage;
 use ndarray::Array2;
+use rand;
 use std::ops::Deref;
 
 fn expand_distances(distances: &mut Array2<i32>, iteration: i32) -> bool {
@@ -113,7 +114,10 @@ pub fn set_pixel_close_to_border_to_white(
         for y in 0..h {
             let local_dist = distances[[x as usize, y as usize]];
             if local_dist < max_distance {
-                img.put_pixel(x, y, white_pixel);
+                let gap = max_distance - local_dist;
+                if (gap == 1 && rand::random::<f32>() > 0.5) | (gap > 1) {
+                    img.put_pixel(x, y, white_pixel);
+                }
             }
         }
     }
