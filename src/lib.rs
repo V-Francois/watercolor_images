@@ -1,7 +1,9 @@
 use image::ImageBuffer;
 use image::Pixel;
+use image::Rgba;
+use image::RgbaImage;
 use ndarray::Array2;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 
 fn expand_distances(distances: &mut Array2<i32>, iteration: i32) -> bool {
     let mut incremented_distances = false;
@@ -97,4 +99,22 @@ pub fn compute_distance_to_border<P: Pixel, Container: Deref<Target = [P::Subpix
     }
 
     return distances;
+}
+
+pub fn set_pixel_close_to_border_to_white(
+    img: &mut RgbaImage,
+    max_distance: i32,
+    distances: &Array2<i32>,
+) {
+    let (w, h) = img.dimensions();
+    let max_value: u8 = 255;
+    let white_pixel = Rgba([max_value, max_value, max_value, max_value]);
+    for x in 0..w {
+        for y in 0..h {
+            let local_dist = distances[[x as usize, y as usize]];
+            if local_dist < max_distance {
+                img.put_pixel(x, y, white_pixel);
+            }
+        }
+    }
 }

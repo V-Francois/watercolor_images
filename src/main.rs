@@ -1,8 +1,5 @@
-use image::ImageBuffer;
 use image::ImageOutputFormat;
-use image::Pixel;
 use std::fs::File;
-use std::io::prelude::*;
 use std::path::Path;
 
 use watercolor_images;
@@ -10,25 +7,13 @@ use watercolor_images;
 fn main() {
     let mut img = image::open("data/ferris.png")
         .expect("File not found")
-        .into_rgba16();
-
-    let (w, h) = img.dimensions();
+        .into_rgba8();
 
     let distances = watercolor_images::compute_distance_to_border(&img);
 
     // Replace pixels close to border by white pixels
     let max_distance = 3;
-
-    let max_value: u16 = 65535;
-    let white_pixel = Pixel::from_channels(max_value, max_value, max_value, max_value);
-    for x in 0..w {
-        for y in 0..h {
-            let local_dist = distances[[x as usize, y as usize]];
-            if local_dist < max_distance {
-                img.put_pixel(x, y, white_pixel);
-            }
-        }
-    }
+    watercolor_images::set_pixel_close_to_border_to_white(&mut img, max_distance, &distances);
 
     let path = Path::new("data/output.png");
     let display = path.display();
