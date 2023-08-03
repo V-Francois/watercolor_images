@@ -149,18 +149,14 @@ pub fn set_pixel_close_to_border_to_white(
 }
 
 pub fn create_noisy_background(width: u32, height: u32, max_value: u8) -> GrayAlphaImage {
-    let width_of_tilable = (rand::random::<f32>() * 10.0 + 10.0) as u32;
-    let height_of_tilable = (rand::random::<f32>() * 10.0 + 10.0) as u32;
+    let width_of_tilable = (rand::random::<f32>() * 15.0 + 10.0) as u32;
+    let height_of_tilable = (rand::random::<f32>() * 15.0 + 10.0) as u32;
     let mut tile = GrayAlphaImage::new(width_of_tilable, height_of_tilable);
 
     // black points with an alpha channel that is low
     for x in 0..width_of_tilable {
-        let sin_val_x = ((x as f32 / width_of_tilable as f32) * 2.0 * PI).sin();
         for y in 0..height_of_tilable {
-            let sin_val_y = ((y as f32 / height_of_tilable as f32) * 2.0 * PI).sin();
-            let alpha_value = (sin_val_x * sin_val_y * max_value as f32
-                + rand::random::<f32>() * max_value as f32 / 3.0)
-                .abs();
+            let alpha_value = rand::random::<f32>() * max_value as f32;
             tile.put_pixel(x, y, LumaA([0 as u8, alpha_value as u8]));
         }
     }
@@ -174,4 +170,14 @@ pub fn create_noisy_background(width: u32, height: u32, max_value: u8) -> GrayAl
     }
 
     return background;
+}
+
+pub fn apply_threshold_on_grey(img: &mut GrayAlphaImage, threshold_value: u8) {
+    for pixel in img.pixels_mut() {
+        if pixel.0[0] > threshold_value {
+            pixel.0[0] = 255;
+        } else {
+            pixel.0[0] = 0;
+        }
+    }
 }
