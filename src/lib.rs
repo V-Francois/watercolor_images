@@ -1,3 +1,4 @@
+use image::GenericImageView;
 use image::GrayAlphaImage;
 use image::ImageBuffer;
 use image::LumaA;
@@ -6,6 +7,7 @@ use image::Rgba;
 use image::RgbaImage;
 use ndarray::Array2;
 use rand;
+use std::f32::consts::PI;
 use std::ops::Deref;
 
 fn expand_distances(distances: &mut Array2<i32>, iteration: i32) -> bool {
@@ -144,4 +146,32 @@ pub fn set_pixel_close_to_border_to_white(
             }
         }
     }
+}
+
+pub fn create_noisy_background(width: u32, height: u32, max_value: u8) -> GrayAlphaImage {
+    let width_of_tilable = (rand::random::<f32>() * 10.0 + 10.0) as u32;
+    let height_of_tilable = (rand::random::<f32>() * 10.0 + 10.0) as u32;
+    let mut tile = GrayAlphaImage::new(width_of_tilable, height_of_tilable);
+
+    // black points with an alpha channel that is low
+    for x in 0..width_of_tilable {
+        let sin_val_x = ((x as f32 / width_of_tilable as f32) * 2.0 * PI).sin();
+        for y in 0..height_of_tilable {
+            let sin_val_y = ((y as f32 / height_of_tilable as f32) * 2.0 * PI).sin();
+            let alpha_value = (sin_val_x * sin_val_y * max_value as f32
+                + rand::random::<f32>() * max_value as f32 / 3.0)
+                .abs();
+            tile.put_pixel(x, y, LumaA([0 as u8, alpha_value as u8]));
+        }
+    }
+
+    let mut background = GrayAlphaImage::new(width, height);
+    for x in 0..width {
+        for y in 0..height {
+            let pixel = tile.get_pixel(x % width_of_tilable, y % height_of_tilable);
+            background.put_pixel(x, y, *pixel);
+        }
+    }
+
+    return background;
 }
