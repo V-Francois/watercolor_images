@@ -1,4 +1,6 @@
+use image::GrayAlphaImage;
 use image::ImageBuffer;
+use image::LumaA;
 use image::Pixel;
 use image::Rgba;
 use image::RgbaImage;
@@ -100,6 +102,27 @@ pub fn compute_distance_to_border<P: Pixel, Container: Deref<Target = [P::Subpix
     }
 
     return distances;
+}
+
+pub fn create_mask(img: &RgbaImage, max_distance: i32, distances: &Array2<i32>) -> GrayAlphaImage {
+    let (w, h) = img.dimensions();
+    let mut mask_image = GrayAlphaImage::new(w, h);
+
+    let max_value: u8 = 255;
+    let white_pixel = LumaA([max_value, max_value]);
+    let black_pixel = LumaA([0 as u8, max_value]);
+
+    for x in 0..w {
+        for y in 0..h {
+            let local_dist = distances[[x as usize, y as usize]];
+            if local_dist < max_distance {
+                mask_image.put_pixel(x, y, black_pixel);
+            } else {
+                mask_image.put_pixel(x, y, white_pixel);
+            }
+        }
+    }
+    return mask_image;
 }
 
 pub fn set_pixel_close_to_border_to_white(
