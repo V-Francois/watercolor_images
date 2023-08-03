@@ -6,6 +6,8 @@ use image::Pixel;
 use image::Rgba;
 use image::RgbaImage;
 use ndarray::Array2;
+use noise::{NoiseFn, Perlin, Seedable};
+use perlin_noise::PerlinNoise;
 use rand;
 use rand_distr::{Distribution, Normal};
 use std::f32::consts::PI;
@@ -149,25 +151,27 @@ pub fn set_pixel_close_to_border_to_white(
     }
 }
 
-//pub fn apply_threshold_on_grey(img: &mut GrayAlphaImage, threshold_value: u8) {
-//    for pixel in img.pixels_mut() {
-//        if pixel.0[0] > threshold_value {
-//            pixel.0[0] = 255;
-//        } else {
-//            pixel.0[0] = 0;
-//        }
-//    }
-//}
+pub fn apply_threshold_on_grey(img: &mut GrayImage, threshold_value: u8) {
+    for pixel in img.pixels_mut() {
+        if pixel.0[0] > threshold_value {
+            pixel.0[0] = 255;
+        } else {
+            pixel.0[0] = 0;
+        }
+    }
+}
 
 pub fn add_noise(img: &mut GrayImage) {
     let (w, h) = img.dimensions();
-    let random_x = random_walk(w as i32);
-    let random_y = random_walk(h as i32);
+    let perlin = Perlin::new(0);
+
     for x in 0..w {
         for y in 0..h {
-            let diff = random_x[x as usize] * random_y[y as usize] * 500.0;
+            let diff =
+                //perlin.get([x as f64 / w as f64 * 100.0, y as f64 / h as f64 * 100.0]) * 75.0;
+                perlin.get([x as f64 / 5.0, y as f64 / 5.0]) * 75.0;
             let pixel = img.get_pixel(x, y);
-            let mut new_value = pixel.0[0] as f32 - diff;
+            let mut new_value = pixel.0[0] as f64 + diff;
             if new_value < 0.0 {
                 new_value = 0.0;
             } else if new_value > 255.0 {
@@ -177,22 +181,4 @@ pub fn add_noise(img: &mut GrayImage) {
             img.put_pixel(x, y, Luma([new_value as u8]));
         }
     }
-}
-
-pub fn random_walk(n_steps: i32) -> Vec<f32> {
-    let mut x_n: Vec<f32> = Vec::new();
-    let delta_t: f32 = 0.1;
-
-    let normal = Normal::new(0.0, 1.0).unwrap();
-
-    let mut mean: f32 = 0.0;
-    let mut x: f32 = 0.0;
-    for i in 0..n_steps {
-        let v = normal.sample(&mut rand::thread_rng());
-        x = x - delta_t * x + delta_t * v;
-        mean += x;
-        x_n.push(x);
-    }
-    println!("Mean: {}", mean);
-    return x_n;
 }

@@ -18,12 +18,11 @@ fn main() {
     let max_distance = 3;
     let mut mask_image = watercolor_images::create_mask(&img, max_distance, &distances);
 
-    watercolor_images::add_noise(&mut mask_image);
     mask_image = blur(&mask_image, (max_distance as f32) / 2.0);
+    watercolor_images::add_noise(&mut mask_image);
 
-    //
-    ////watercolor_images::apply_threshold_on_grey(&mut mask_image, threshold_value + 20);
-    //
+    watercolor_images::apply_threshold_on_grey(&mut mask_image, 128);
+
     let path = Path::new("data/output.png");
     let display = path.display();
 
