@@ -1,12 +1,13 @@
 use image::GenericImageView;
-use image::GrayAlphaImage;
+use image::GrayImage;
 use image::ImageBuffer;
-use image::LumaA;
+use image::Luma;
 use image::Pixel;
 use image::Rgba;
 use image::RgbaImage;
 use ndarray::Array2;
 use rand;
+use rand_distr::{Distribution, Normal};
 use std::f32::consts::PI;
 use std::ops::Deref;
 
@@ -106,13 +107,13 @@ pub fn compute_distance_to_border<P: Pixel, Container: Deref<Target = [P::Subpix
     return distances;
 }
 
-pub fn create_mask(img: &RgbaImage, max_distance: i32, distances: &Array2<i32>) -> GrayAlphaImage {
+pub fn create_mask(img: &RgbaImage, max_distance: i32, distances: &Array2<i32>) -> GrayImage {
     let (w, h) = img.dimensions();
-    let mut mask_image = GrayAlphaImage::new(w, h);
+    let mut mask_image = GrayImage::new(w, h);
 
     let max_value: u8 = 255;
-    let white_pixel = LumaA([max_value, max_value]);
-    let black_pixel = LumaA([0 as u8, max_value]);
+    let white_pixel = Luma([max_value]);
+    let black_pixel = Luma([0 as u8]);
 
     for x in 0..w {
         for y in 0..h {
@@ -148,36 +149,50 @@ pub fn set_pixel_close_to_border_to_white(
     }
 }
 
-pub fn create_noisy_background(width: u32, height: u32, max_value: u8) -> GrayAlphaImage {
-    let width_of_tilable = (rand::random::<f32>() * 15.0 + 10.0) as u32;
-    let height_of_tilable = (rand::random::<f32>() * 15.0 + 10.0) as u32;
-    let mut tile = GrayAlphaImage::new(width_of_tilable, height_of_tilable);
+//pub fn apply_threshold_on_grey(img: &mut GrayAlphaImage, threshold_value: u8) {
+//    for pixel in img.pixels_mut() {
+//        if pixel.0[0] > threshold_value {
+//            pixel.0[0] = 255;
+//        } else {
+//            pixel.0[0] = 0;
+//        }
+//    }
+//}
 
-    // black points with an alpha channel that is low
-    for x in 0..width_of_tilable {
-        for y in 0..height_of_tilable {
-            let alpha_value = rand::random::<f32>() * max_value as f32;
-            tile.put_pixel(x, y, LumaA([0 as u8, alpha_value as u8]));
+pub fn add_noise(img: &mut GrayImage) {
+    let (w, h) = img.dimensions();
+    let random_x = random_walk(w as i32);
+    let random_y = random_walk(h as i32);
+    for x in 0..w {
+        for y in 0..h {
+            let diff = random_x[x as usize] * random_y[y as usize] * 500.0;
+            let pixel = img.get_pixel(x, y);
+            let mut new_value = pixel.0[0] as f32 - diff;
+            if new_value < 0.0 {
+                new_value = 0.0;
+            } else if new_value > 255.0 {
+                new_value = 255.0;
+            }
+            //println!("Old: {}, new: {}", pixel.0[0], new_value);
+            img.put_pixel(x, y, Luma([new_value as u8]));
         }
     }
-
-    let mut background = GrayAlphaImage::new(width, height);
-    for x in 0..width {
-        for y in 0..height {
-            let pixel = tile.get_pixel(x % width_of_tilable, y % height_of_tilable);
-            background.put_pixel(x, y, *pixel);
-        }
-    }
-
-    return background;
 }
 
-pub fn apply_threshold_on_grey(img: &mut GrayAlphaImage, threshold_value: u8) {
-    for pixel in img.pixels_mut() {
-        if pixel.0[0] > threshold_value {
-            pixel.0[0] = 255;
-        } else {
-            pixel.0[0] = 0;
-        }
+pub fn random_walk(n_steps: i32) -> Vec<f32> {
+    let mut x_n: Vec<f32> = Vec::new();
+    let delta_t: f32 = 0.1;
+
+    let normal = Normal::new(0.0, 1.0).unwrap();
+
+    let mut mean: f32 = 0.0;
+    let mut x: f32 = 0.0;
+    for i in 0..n_steps {
+        let v = normal.sample(&mut rand::thread_rng());
+        x = x - delta_t * x + delta_t * v;
+        mean += x;
+        x_n.push(x);
     }
+    println!("Mean: {}", mean);
+    return x_n;
 }
