@@ -16,7 +16,7 @@ fn main() {
 
     let distances = watercolor_images::compute_distance_to_border(&img);
 
-    let max_distance = 3;
+    let max_distance = 2;
     let mut mask_image = watercolor_images::create_mask(&img, max_distance, &distances);
 
     mask_image = blur(&mask_image, (max_distance as f32) / 2.0);
@@ -27,6 +27,14 @@ fn main() {
     watercolor_images::apply_mask(&mut img, &mask_image);
 
     img = unsharpen(&img, (max_distance as f32) / 2.0, 1);
+
+    // Put alpha to 0.7
+    let alpha_value = (0.7 * 255.0) as u8;
+    for pixel in img.pixels_mut() {
+        pixel.0[3] = alpha_value;
+    }
+
+    watercolor_images::add_random_hue_variation(&mut img);
 
     let path = Path::new("data/output.png");
     let display = path.display();

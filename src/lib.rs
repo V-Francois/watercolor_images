@@ -163,9 +163,7 @@ pub fn add_noise(img: &mut GrayImage) {
 
     for x in 0..w {
         for y in 0..h {
-            let diff =
-                //perlin.get([x as f64 / w as f64 * 100.0, y as f64 / h as f64 * 100.0]) * 75.0;
-                perlin.get([x as f64 / 10.0, y as f64 / 10.0]) * 100.0;
+            let diff = perlin.get([x as f64 / 10.0, y as f64 / 10.0]) * 100.0;
             let pixel = img.get_pixel(x, y);
             let mut new_value = pixel.0[0] as f64 + diff;
             if new_value < 0.0 {
@@ -175,6 +173,27 @@ pub fn add_noise(img: &mut GrayImage) {
             }
             //println!("Old: {}, new: {}", pixel.0[0], new_value);
             img.put_pixel(x, y, Luma([new_value as u8]));
+        }
+    }
+}
+
+pub fn add_random_hue_variation(img: &mut RgbaImage) {
+    let perlin = Perlin::new(0);
+    for (x, y, pixel) in img.enumerate_pixels_mut() {
+        for i in 3..4 {
+            if pixel.0[i] > 0 && pixel.0[i] < 255 {
+                let diff = perlin.get([
+                    (x as usize + i * 5) as f64 / 75.0,
+                    (y as usize + i * 5) as f64 / 75.0,
+                ]) * 30.0;
+                let mut new_value = pixel.0[i] as f64 + diff;
+                if new_value < 0.0 {
+                    new_value = 0.0;
+                } else if new_value > 255.0 {
+                    new_value = 255.0;
+                }
+                pixel.0[i] = new_value as u8;
+            }
         }
     }
 }
