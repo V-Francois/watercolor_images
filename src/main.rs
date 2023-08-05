@@ -31,7 +31,10 @@ fn main() {
     // Put alpha to 0.7
     let alpha_value = (0.7 * 255.0) as u8;
     for pixel in img.pixels_mut() {
-        pixel.0[3] = alpha_value;
+        // don’t apply to white
+        if pixel.0[0] as u16 + pixel.0[1] as u16 + pixel.0[2] as u16 != 255 * 3 {
+            pixel.0[3] = alpha_value;
+        }
     }
 
     watercolor_images::add_random_hue_variation(&mut img);
