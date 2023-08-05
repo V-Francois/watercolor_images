@@ -130,22 +130,18 @@ pub fn create_mask(img: &RgbaImage, max_distance: i32, distances: &Array2<i32>) 
     return mask_image;
 }
 
-pub fn set_pixel_close_to_border_to_white(
-    img: &mut RgbaImage,
-    max_distance: i32,
-    distances: &Array2<i32>,
-) {
+pub fn apply_mask(img: &mut RgbaImage, mask: &GrayImage) {
     let (w, h) = img.dimensions();
+    let (w2, h2) = mask.dimensions();
+    assert_eq!(w, w2);
+    assert_eq!(h, h2);
     let max_value: u8 = 255;
     let white_pixel = Rgba([max_value, max_value, max_value, max_value]);
     for x in 0..w {
         for y in 0..h {
-            let local_dist = distances[[x as usize, y as usize]];
-            if local_dist < max_distance {
-                let gap = max_distance - local_dist;
-                if (gap == 1 && rand::random::<f32>() > 0.5) | (gap > 1) {
-                    img.put_pixel(x, y, white_pixel);
-                }
+            let mask_pixel = mask.get_pixel(x, y);
+            if mask_pixel.0[0] == 0 {
+                img.put_pixel(x, y, white_pixel);
             }
         }
     }
@@ -169,7 +165,7 @@ pub fn add_noise(img: &mut GrayImage) {
         for y in 0..h {
             let diff =
                 //perlin.get([x as f64 / w as f64 * 100.0, y as f64 / h as f64 * 100.0]) * 75.0;
-                perlin.get([x as f64 / 5.0, y as f64 / 5.0]) * 75.0;
+                perlin.get([x as f64 / 10.0, y as f64 / 10.0]) * 100.0;
             let pixel = img.get_pixel(x, y);
             let mut new_value = pixel.0[0] as f64 + diff;
             if new_value < 0.0 {

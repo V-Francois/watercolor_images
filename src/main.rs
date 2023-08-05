@@ -1,5 +1,6 @@
 use image::imageops::blur;
 use image::imageops::overlay;
+use image::imageops::unsharpen;
 use image::ImageOutputFormat;
 use std::fs::File;
 use std::path::Path;
@@ -7,7 +8,7 @@ use std::path::Path;
 use watercolor_images;
 
 fn main() {
-    let img = image::open("data/ferris.png")
+    let mut img = image::open("data/ferris.png")
         .expect("File not found")
         .into_rgba8();
 
@@ -23,6 +24,10 @@ fn main() {
 
     watercolor_images::apply_threshold_on_grey(&mut mask_image, 128);
 
+    watercolor_images::apply_mask(&mut img, &mask_image);
+
+    img = unsharpen(&img, (max_distance as f32) / 2.0, 1);
+
     let path = Path::new("data/output.png");
     let display = path.display();
 
@@ -32,5 +37,5 @@ fn main() {
         Ok(file) => file,
     };
 
-    mask_image.write_to(&mut file, ImageOutputFormat::Png);
+    img.write_to(&mut file, ImageOutputFormat::Png);
 }
