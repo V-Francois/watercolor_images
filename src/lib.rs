@@ -59,9 +59,7 @@ fn expand_distances(distances: &mut Array2<i32>, iteration: i32) -> bool {
     return incremented_distances;
 }
 
-pub fn create_masks<P: Pixel, Container: Deref<Target = [P::Subpixel]>>(
-    img: &ImageBuffer<P, Container>,
-) -> Vec<GrayImage> {
+pub fn create_masks(img: &RgbaImage) -> (Vec<Rgba<u8>>, Vec<GrayImage>) {
     let (w, h) = img.dimensions();
 
     // Will label each pixel based on its color
@@ -98,7 +96,6 @@ pub fn create_masks<P: Pixel, Container: Deref<Target = [P::Subpixel]>>(
     let white_pixel = Luma([max_value]);
     let black_pixel = Luma([0 as u8]);
 
-    let mut max_count = 0;
     for i in 0..pixel_types.len() {
         let mut mask_image = GrayImage::new(w, h);
         let mut count = 0;
@@ -117,7 +114,7 @@ pub fn create_masks<P: Pixel, Container: Deref<Target = [P::Subpixel]>>(
             masks.push(mask_image);
         }
     }
-    return masks;
+    return (pixel_types, masks);
 }
 
 pub fn create_mask(img: &RgbaImage, max_distance: i32, distances: &Array2<i32>) -> GrayImage {
