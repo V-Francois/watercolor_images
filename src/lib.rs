@@ -1,4 +1,3 @@
-use image::GenericImageView;
 use image::GrayImage;
 use image::ImageBuffer;
 use image::Luma;
@@ -6,11 +5,7 @@ use image::Pixel;
 use image::Rgba;
 use image::RgbaImage;
 use ndarray::Array2;
-use noise::{NoiseFn, Perlin, Seedable};
-use perlin_noise::PerlinNoise;
-use rand;
-use rand_distr::{Distribution, Normal};
-use std::f32::consts::PI;
+use noise::{NoiseFn, Perlin};
 use std::ops::Deref;
 
 fn expand_distances(distances: &mut Array2<i32>, iteration: i32) -> bool {
@@ -64,49 +59,65 @@ fn expand_distances(distances: &mut Array2<i32>, iteration: i32) -> bool {
     return incremented_distances;
 }
 
-pub fn compute_distance_to_border<P: Pixel, Container: Deref<Target = [P::Subpixel]>>(
+pub fn create_masks<P: Pixel, Container: Deref<Target = [P::Subpixel]>>(
     img: &ImageBuffer<P, Container>,
-) -> Array2<i32> {
+) -> Vec<GrayImage> {
     let (w, h) = img.dimensions();
 
-    // Will contain the distance between any pixel and a border between two colors
-    let mut distances = Array2::<i32>::zeros((w as usize, h as usize));
-    distances.fill(-1);
+    // Will label each pixel based on its color
+    let mut pixel_labels = Array2::<usize>::zeros((w as usize, h as usize));
 
-    let mut found_border = false;
-    for x in 0..(w - 1) {
+    let mut pixel_types = Vec::new();
+
+    for x in 0..w {
         for y in 0..h {
             let pixel_here = img.get_pixel(x, y).to_rgba();
-            let pixel_right = img.get_pixel(x + 1, y).to_rgba();
-            if pixel_here != pixel_right {
-                distances[[x as usize, y as usize]] = 0;
-                distances[[(x + 1) as usize, y as usize]] = 0;
-                found_border = true;
-            }
-            if y < h - 1 {
-                let pixel_bottom = img.get_pixel(x, y + 1).to_rgba();
-                if pixel_here != pixel_bottom {
-                    distances[[x as usize, y as usize]] = 0;
-                    distances[[x as usize, (y + 1) as usize]] = 0;
-                    found_border = true;
+            if x == 0 && y == 0 {
+                pixel_labels[[0, 0]] = 0;
+                pixel_types.push(pixel_here);
+            } else {
+                let mut found_pixel = false;
+                // Check if pixel is similar to one in the list
+                for (i, pixel) in pixel_types.iter().enumerate() {
+                    if *pixel == pixel_here {
+                        pixel_labels[[x as usize, y as usize]] = i;
+                        found_pixel = true;
+                        break;
+                    }
+                }
+                if !found_pixel {
+                    pixel_labels[[x as usize, y as usize]] = pixel_types.len();
+                    pixel_types.push(pixel_here);
                 }
             }
         }
     }
-    if !found_border {
-        return distances;
-    }
 
-    let mut iteration = 0;
-    loop {
-        let incremented_distances = expand_distances(&mut distances, iteration);
-        iteration += 1;
-        if !incremented_distances {
-            break;
+    let mut masks: Vec<GrayImage> = Vec::new();
+    let max_value: u8 = 255;
+    let white_pixel = Luma([max_value]);
+    let black_pixel = Luma([0 as u8]);
+
+    let mut max_count = 0;
+    for i in 0..pixel_types.len() {
+        let mut mask_image = GrayImage::new(w, h);
+        let mut count = 0;
+        for x in 0..w {
+            for y in 0..h {
+                if pixel_labels[[x as usize, y as usize]] == i as usize {
+                    count += 1;
+                    mask_image.put_pixel(x, y, black_pixel);
+                } else {
+                    mask_image.put_pixel(x, y, white_pixel);
+                }
+            }
+        }
+        // only consider masks with at least 1K points
+        if count >= 1000 {
+            masks.push(mask_image);
         }
     }
-
-    return distances;
+    return masks;
 }
 
 pub fn create_mask(img: &RgbaImage, max_distance: i32, distances: &Array2<i32>) -> GrayImage {
