@@ -2,8 +2,8 @@ use image::GrayImage;
 use image::ImageBuffer;
 use image::Luma;
 use image::Pixel;
-use image::Rgba;
 use image::RgbaImage;
+use image::{Rgb, Rgba};
 use ndarray::Array2;
 use noise::{NoiseFn, Perlin};
 use std::ops::Deref;
@@ -92,6 +92,7 @@ pub fn create_masks(img: &RgbaImage) -> (Vec<Rgba<u8>>, Vec<GrayImage>) {
     }
 
     let mut masks: Vec<GrayImage> = Vec::new();
+    let mut final_pixel_types = Vec::new();
     let max_value: u8 = 255;
     let white_pixel = Luma([max_value]);
     let black_pixel = Luma([0 as u8]);
@@ -112,9 +113,10 @@ pub fn create_masks(img: &RgbaImage) -> (Vec<Rgba<u8>>, Vec<GrayImage>) {
         // only consider masks with at least 1K points
         if count >= 1000 {
             masks.push(mask_image);
+            final_pixel_types.push(pixel_types[i]);
         }
     }
-    return (pixel_types, masks);
+    return (final_pixel_types, masks);
 }
 
 pub fn create_mask(img: &RgbaImage, max_distance: i32, distances: &Array2<i32>) -> GrayImage {
@@ -187,8 +189,13 @@ pub fn add_noise(img: &mut GrayImage) {
 
 pub fn add_random_hue_variation(img: &mut RgbaImage) {
     let perlin = Perlin::new(0);
+    let max_value: u8 = 255;
+    let white_pixel = Rgb([max_value, max_value, max_value]);
     for (x, y, pixel) in img.enumerate_pixels_mut() {
-        for i in 3..4 {
+        if (*pixel).to_rgb() == white_pixel {
+            continue;
+        }
+        for i in 0..3 {
             if pixel.0[i] > 0 && pixel.0[i] < 255 {
                 let diff = perlin.get([
                     (x as usize + i * 5) as f64 / 75.0,
@@ -204,4 +211,27 @@ pub fn add_random_hue_variation(img: &mut RgbaImage) {
             }
         }
     }
+}
+
+pub fn transform_mask_into_image(mask: GrayImage, pixel: Rgba<u8>) -> RgbaImage {
+    let (w, h) = mask.dimensions();
+    let mut image = RgbaImage::new(w, h);
+
+    let max_value: u8 = 255;
+    let alpha_value: u8 = (max_value as f32 * 0.7) as u8;
+    let white_pixel = Rgba([max_value, max_value, max_value, alpha_value]);
+    let mut pixel_to_put = pixel;
+    pixel_to_put.0[3] = alpha_value;
+    for x in 0..w {
+        for y in 0..h {
+            let mask_pixel = mask.get_pixel(x, y);
+            if mask_pixel.0[0] == max_value {
+                image.put_pixel(x, y, white_pixel);
+            } else {
+                image.put_pixel(x, y, pixel_to_put);
+            }
+        }
+    }
+
+    return image;
 }
