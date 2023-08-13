@@ -14,17 +14,17 @@ fn main() {
 
     // TODO: set alpha to 1 everywhere
 
-    let (pixels, mut masks) = watercolor_images::create_masks(&img);
+    let (pixels, masks) = watercolor_images::create_masks(&img);
 
     println!("Found {} colors", masks.len());
 
     let blur_distance = 2.0;
-    for (i, mask_image) in masks.iter().enumerate() {
-        //let mut mask_image = &*mask;
-        //mask_image = blur(&mask_image, blur_distance);
-        //watercolor_images::add_noise(&mut mask_image);
-        //
-        //watercolor_images::apply_threshold_on_grey(&mut mask_image, 128);
+    for (i, mask) in masks.iter().enumerate() {
+        let mut mask_image = blur(mask, blur_distance);
+
+        watercolor_images::add_noise(&mut mask_image);
+
+        watercolor_images::apply_threshold_on_grey(&mut mask_image, 128);
 
         let name = format!("data/output_{i}.png");
         let path = Path::new(&name);
