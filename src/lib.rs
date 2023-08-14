@@ -219,7 +219,7 @@ pub fn transform_mask_into_image(mask: GrayImage, pixel: Rgba<u8>) -> RgbaImage 
 
     let max_value: u8 = 255;
     let alpha_value: u8 = (max_value as f32 * 0.7) as u8;
-    let white_pixel = Rgba([max_value, max_value, max_value, alpha_value]);
+    let white_pixel = Rgba([max_value, max_value, max_value, 0]);
     let mut pixel_to_put = pixel;
     pixel_to_put.0[3] = alpha_value;
     for x in 0..w {
