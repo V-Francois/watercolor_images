@@ -1,63 +1,10 @@
 use image::GrayImage;
-use image::ImageBuffer;
 use image::Luma;
 use image::Pixel;
 use image::RgbaImage;
 use image::{Rgb, Rgba};
 use ndarray::Array2;
 use noise::{NoiseFn, Perlin};
-use std::ops::Deref;
-
-fn expand_distances(distances: &mut Array2<i32>, iteration: i32) -> bool {
-    let mut incremented_distances = false;
-
-    // not guaranteed to have the smallest distances written in the array
-    // but that will be enough for now
-
-    let shape = distances.shape();
-    let w = shape[0];
-    let h = shape[1];
-
-    for x in 0..w {
-        for y in 0..h {
-            let here = distances[[x as usize, y as usize]];
-            if here != iteration {
-                continue;
-            }
-
-            if x < w - 1 {
-                let right = distances[[(x + 1) as usize, y as usize]];
-                if right == -1 {
-                    distances[[(x + 1) as usize, y as usize]] = iteration + 1;
-                    incremented_distances = true;
-                }
-            }
-            if y < h - 1 {
-                let below = distances[[x as usize, (y + 1) as usize]];
-                if below == -1 {
-                    distances[[x as usize, (y + 1) as usize]] = iteration + 1;
-                    incremented_distances = true;
-                }
-            }
-            if x > 0 {
-                let left = distances[[(x - 1) as usize, y as usize]];
-                if left == -1 {
-                    distances[[(x - 1) as usize, y as usize]] = iteration + 1;
-                    incremented_distances = true;
-                }
-            }
-            if y > 0 {
-                let above = distances[[x as usize, (y - 1) as usize]];
-                if above == -1 {
-                    distances[[x as usize, (y - 1) as usize]] = iteration + 1;
-                    incremented_distances = true;
-                }
-            }
-        }
-    }
-
-    return incremented_distances;
-}
 
 pub fn create_masks(img: &RgbaImage) -> (Vec<Rgba<u8>>, Vec<GrayImage>) {
     let (w, h) = img.dimensions();

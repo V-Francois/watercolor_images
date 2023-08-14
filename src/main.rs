@@ -1,6 +1,5 @@
 use image::imageops::blur;
 use image::imageops::overlay;
-use image::imageops::unsharpen;
 use image::ImageOutputFormat;
 use image::Rgba;
 use image::RgbaImage;
@@ -10,7 +9,7 @@ use std::path::Path;
 use watercolor_images;
 
 fn main() {
-    let mut img = image::open("data/ferris.png")
+    let img = image::open("data/ferris.png")
         .expect("File not found")
         .into_rgba8();
     let (w, h) = img.dimensions();
@@ -52,7 +51,7 @@ fn main() {
         };
 
         colored_mask.write_to(&mut file, ImageOutputFormat::Png);
-        image::imageops::overlay(&mut final_img, &colored_mask, 0, 0);
+        overlay(&mut final_img, &colored_mask, 0, 0);
     }
 
     let path = Path::new("data/output.png");
