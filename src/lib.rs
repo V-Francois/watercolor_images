@@ -120,7 +120,7 @@ pub fn add_noise(img: &mut GrayImage) {
 
     for x in 0..w {
         for y in 0..h {
-            let diff = perlin.get([x as f64 / 10.0, y as f64 / 10.0]) * 100.0;
+            let diff = perlin.get([x as f64 / 15.0, y as f64 / 15.0]) * 100.0;
             let pixel = img.get_pixel(x, y);
             let mut new_value = pixel.0[0] as f64 + diff;
             if new_value < 0.0 {
@@ -147,7 +147,7 @@ pub fn add_random_hue_variation(img: &mut RgbaImage) {
                 let diff = perlin.get([
                     (x as usize + i * 5) as f64 / 75.0,
                     (y as usize + i * 5) as f64 / 75.0,
-                ]) * 30.0;
+                ]) * 20.0;
                 let mut new_value = pixel.0[i] as f64 + diff;
                 if new_value < 0.0 {
                     new_value = 0.0;
