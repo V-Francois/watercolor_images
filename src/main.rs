@@ -28,17 +28,15 @@ fn main() {
         if pixel.0 == [max_value, max_value, max_value, max_value] {
             continue;
         }
+
         let mut mask_image = blur(mask, blur_distance);
-
         watercolor_images::add_noise(&mut mask_image);
-
         watercolor_images::apply_threshold_on_grey(&mut mask_image, 128);
 
-        println!("{:?}", pixels[i as usize]);
-
-        let mut colored_mask = watercolor_images::transform_mask_into_image(mask_image, pixel);
-
+        let mut colored_mask = watercolor_images::transform_mask_into_image(&mask_image, pixel);
         watercolor_images::add_random_hue_variation(&mut colored_mask);
+
+        let darkening_mask = watercolor_images::generate_edge_darkening_from_mask(mask_image);
 
         let name = format!("data/output_{i}.png");
         let path = Path::new(&name);
@@ -50,8 +48,10 @@ fn main() {
             Ok(file) => file,
         };
 
-        colored_mask.write_to(&mut file, ImageOutputFormat::Png);
+        //colored_mask.write_to(&mut file, ImageOutputFormat::Png);
+        darkening_mask.write_to(&mut file, ImageOutputFormat::Png);
         overlay(&mut final_img, &colored_mask, 0, 0);
+        overlay(&mut final_img, &darkening_mask, 0, 0);
     }
 
     let path = Path::new("data/output.png");

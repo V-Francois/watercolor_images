@@ -1,7 +1,11 @@
+use image::imageops::blur;
+use image::imageops::invert;
+use image::DynamicImage;
+use image::GrayAlphaImage;
 use image::GrayImage;
-use image::Luma;
 use image::Pixel;
 use image::RgbaImage;
+use image::{Luma, LumaA};
 use image::{Rgb, Rgba};
 use ndarray::Array2;
 use noise::{NoiseFn, Perlin};
@@ -160,7 +164,7 @@ pub fn add_random_hue_variation(img: &mut RgbaImage) {
     }
 }
 
-pub fn transform_mask_into_image(mask: GrayImage, pixel: Rgba<u8>) -> RgbaImage {
+pub fn transform_mask_into_image(mask: &GrayImage, pixel: Rgba<u8>) -> RgbaImage {
     let (w, h) = mask.dimensions();
     let mut image = RgbaImage::new(w, h);
 
@@ -181,4 +185,36 @@ pub fn transform_mask_into_image(mask: GrayImage, pixel: Rgba<u8>) -> RgbaImage 
     }
 
     return image;
+}
+
+pub fn generate_edge_darkening_from_mask(mask: GrayImage) -> RgbaImage {
+    // Start from the mask
+    // Blurr it, then substract
+    //DynamicImage::ImageLuma8(mask).into_luma_alpha8();
+    let mut blurred_mask = DynamicImage::ImageLuma8(mask.clone()).into_rgba8();
+    invert(&mut blurred_mask);
+    let blur_distance = 2.0;
+    blurred_mask = blur(&blurred_mask, blur_distance);
+
+    let max_value: u8 = 255;
+    let white_pixel_non_alpha = Luma([max_value]);
+    let black_pixel_rgba = Rgba([0, 0, 0, max_value]);
+    let white_pixel_rgba = Rgba([max_value, max_value, max_value, max_value]);
+    let alpha_value = 150 as u8;
+    for (x, y, pixel) in blurred_mask.enumerate_pixels_mut() {
+        // ignore all points that are either full white or black
+        if (*pixel == black_pixel_rgba) || (*pixel == white_pixel_rgba) {
+            pixel.0[3] = 0;
+        } else {
+            let pixel_mask = mask.get_pixel(x, y);
+            // if it’s not part of the mask, remove
+            if *pixel_mask == white_pixel_non_alpha {
+                pixel.0[3] = 0;
+            } else {
+                pixel.0[3] = alpha_value;
+            }
+        }
+    }
+
+    return blurred_mask;
 }
