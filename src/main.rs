@@ -36,7 +36,7 @@ fn main() {
         let mut colored_mask = watercolor_images::transform_mask_into_image(&mask_image, pixel);
         watercolor_images::add_random_hue_variation(&mut colored_mask);
 
-        let darkening_mask = watercolor_images::generate_edge_darkening_from_mask(mask_image);
+        colored_mask = watercolor_images::darken_the_edges(mask_image, colored_mask);
 
         let name = format!("data/output_{i}.png");
         let path = Path::new(&name);
@@ -48,10 +48,8 @@ fn main() {
             Ok(file) => file,
         };
 
-        //colored_mask.write_to(&mut file, ImageOutputFormat::Png);
-        darkening_mask.write_to(&mut file, ImageOutputFormat::Png);
+        colored_mask.write_to(&mut file, ImageOutputFormat::Png);
         overlay(&mut final_img, &colored_mask, 0, 0);
-        overlay(&mut final_img, &darkening_mask, 0, 0);
     }
 
     let path = Path::new("data/output.png");

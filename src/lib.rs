@@ -1,14 +1,18 @@
 use image::imageops::blur;
 use image::imageops::invert;
+use image::imageops::overlay;
 use image::DynamicImage;
 use image::GrayAlphaImage;
 use image::GrayImage;
+use image::ImageOutputFormat;
 use image::Pixel;
 use image::RgbaImage;
 use image::{Luma, LumaA};
 use image::{Rgb, Rgba};
 use ndarray::Array2;
 use noise::{NoiseFn, Perlin};
+use std::fs::File;
+use std::path::Path;
 
 pub fn create_masks(img: &RgbaImage) -> (Vec<Rgba<u8>>, Vec<GrayImage>) {
     let (w, h) = img.dimensions();
@@ -217,4 +221,43 @@ pub fn generate_edge_darkening_from_mask(mask: GrayImage) -> RgbaImage {
     }
 
     return blurred_mask;
+}
+
+fn write_to_file(img: &RgbaImage, name: &str) {
+    let path = Path::new(name);
+    let display = path.display();
+
+    // Open a file in write-only mode, returns `io::Result<File>`
+    let mut file = match File::create(&path) {
+        Err(why) => panic!("couldn't create {}: {}", display, why),
+        Ok(file) => file,
+    };
+
+    img.write_to(&mut file, ImageOutputFormat::Png);
+}
+
+pub fn darken_the_edges(mask: GrayImage, colored_mask: RgbaImage) -> RgbaImage {
+    let mut inverted_mask = DynamicImage::ImageLuma8(mask.clone()).into_rgba8();
+    invert(&mut inverted_mask);
+
+    let blur_distance = 4.0;
+    inverted_mask = blur(&inverted_mask, blur_distance);
+
+    let max_value: u8 = 255;
+    let black_pixel_rgba = Rgba([0, 0, 0, max_value]);
+    let white_pixel_non_alpha = Luma([max_value]);
+    for (x, y, pixel) in inverted_mask.enumerate_pixels_mut() {
+        let pixel_mask = mask.get_pixel(x, y);
+        // do not modify outside of mask
+        if *pixel_mask == white_pixel_non_alpha {
+            *pixel = Rgba([max_value, max_value, max_value, 0]);
+        } else if *pixel == black_pixel_rgba {
+            *pixel = Rgba([max_value, max_value, max_value, 0]);
+        } else {
+            pixel.0[3] = max_value;
+        }
+    }
+
+    overlay(&mut inverted_mask, &colored_mask, 0, 0);
+    return inverted_mask;
 }
